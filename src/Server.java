@@ -43,34 +43,41 @@ public class Server {
                 OutputStream out = clientSocket.getOutputStream();
                 //define folder info
                 // Path folder = FileSystems.getDefault().getPath("serverFiles");
-                File folder = new File("serverFiles");
+                File folder = new File("./src/serverFiles");
                 File[] files = folder.listFiles();
                 //define how many bytes can be read at a time
                 byte[] buffer = new byte[1024];
                 int bytesRead;
 
                 //read command from user
-                String command = Integer.toString(in.read());
+                char command = (char) in.read();
 
-                switch(command.toUpperCase()){
-                    case "L":
+                switch(command){
+                    case 'L':
                         //get a list of all the files
-                        out.write(files.toString().getBytes());
+                        String stringFiles = "";
+                        for(File file: files){
+                            stringFiles += file.getName()+"\n";
+                        }
+                        out.write(stringFiles.getBytes());
                         clientSocket.close();
-                    case "R":
+                    case 'R':
                         //rename a file
-                    case "W":
+                    case 'W':
                         //download a file
-                    case "U":
+                    case 'U':
                         //upload a file
-                    case "D":
+                    case 'D':
                         //delete a file
+                    default:
+                        System.out.println("Invalid command: "+command);
+                        //return failed and explanation
                 }
 
 
-                while((bytesRead = in.read(buffer)) != -1){
+                // while((bytesRead = in.read(buffer)) != -1){
 
-                }
+                // }
             } catch(IOException e){
                 e.printStackTrace();
             }
