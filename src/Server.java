@@ -1,7 +1,9 @@
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Array;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -63,38 +65,68 @@ public class Server {
                         clientSocket.close();
                     case 'R':
                         //rename a file
+                        String rInput = "";
+                        while((bytesRead = in.read(buffer))!=-1){
+                            rInput += new String(buffer, 0, bytesRead);
+                        }
+                        String[] fileNames = rInput.split("?");
+                        File toRename = new File(folder, fileNames[0]);
+                        File renameTo = new File(folder, fileNames[1]);
+                        if(toRename.exists() && !renameTo.exists()){
+                            Boolean flag = toRename.renameTo(renameTo);
+                            if(flag==true){
+                                out.write("S".getBytes());
+                            }else{
+                                out.write("F".getBytes());
+                            }
+                        }else{
+                            out.write("F".getBytes());
+                        }
                     case 'W':
-                        //download a file
+                        //send a file
+                        String wFileName = "";
+                        while((bytesRead = in.read(buffer)) != -1){
+                            wFileName += new String(buffer, 0, bytesRead);
+                        }
+                        File fileToSend = new File(folder, wFileName);
+
+                        if(fileToSend.exists() && !fileToSend.isDirectory()){
+                            out.write('S');
+                            try(FileInputStream fis = new FileInputStream(fileToSend)){
+                                while((bytesRead = fis.read(buffer)) != -1){
+                                    out.write(buffer, 0, bytesRead);
+                                }
+                            }
+                        } else{
+                            System.out.println("Error: File not found on server.");
+                            out.write('F');
+                        }
                     case 'U':
                         //upload a file
                     case 'D':
                         //delete a file
+                        String dFileName = "";
+                        while((bytesRead = in.read(buffer))!=-1){
+                            dFileName += new String(buffer, 0, bytesRead);
+                        }
+                        File toDelete = new File(folder, dFileName);
+                        if(toDelete.exists()){
+                            Boolean flag = toDelete.delete();
+                            if(flag==true){
+                                out.write("S".getBytes());
+                            }else{
+                                out.write("F".getBytes());
+                            }
+                        }else{
+                            out.write("F".getBytes());
+                        }
                     default:
                         System.out.println("Invalid command: "+command);
                         //return failed and explanation
                 }
-
-
-                // while((bytesRead = in.read(buffer)) != -1){
-
-                // }
             } catch(IOException e){
                 e.printStackTrace();
             }
-
-            // File fileToSend = new File(folder, fileName);
-
-            // if(fileToSend.exists() && !fileToSend.isDirectory()){
-            //     out.write('S');
-            //     try(FileInputStream fis = new FileInputStream(fileToSend)){
-            //         while((bytesRead = fis.read(buffer)) != -1){
-            //             out.write(buffer, o, bytesRead);
-            //         }
-            //     }
-            // } else{
-            //     System.out.println("Error: File not found on server.");
-            //     out.write('F');
-            // }
         }
     }
 }
