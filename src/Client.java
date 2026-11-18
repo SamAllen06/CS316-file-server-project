@@ -30,15 +30,16 @@ public class Client {
                 case "L":
                     displayList(socket, bytes);
                 case "D":
-                    //deleteFile(socket, bytes);
+                    deleteFile(socket, bytes);
                 case "R":
-                  //  sendRenamingInformation();
+                    sendAndReceiveRenamingInformation(socket, bytes);
                 case "W":
                   //  downloadFromServer();
                 case "U":
                   //  sendUploadInformation();
                 case "Q":
                     System.out.println("Exiting server. Goodbye!");
+                    scanner.close();
                     keepGoing = false;
             } //End switch
 
@@ -60,11 +61,81 @@ public class Client {
             System.out.println(reply);
         }
     }
-/* 
-    public static void deleteFile(Socket socket, byte[] bytes){
 
+    public static void sendAndReceiveRenamingInformation(Socket socket, byte[] menuChoice) throws IOException{
+        Scanner renameScanner = new Scanner(System.in);
+
+        System.out.println("Enter original file name: ");
+        String originalFileName = renameScanner.nextLine().trim();
+
+        System.out.println("Enter new file name: ");
+        String newFileName = renameScanner.nextLine().trim();
+
+        String fileInformation = originalFileName + "?" + newFileName;
+        byte[] fileBytes = fileInformation.getBytes();
+
+        renameScanner.close();
+
+        byte[] clientRequest = new byte[menuChoice.length + fileBytes.length];
+    
+        System.arraycopy(menuChoice, 0, clientRequest, 0, menuChoice.length);
+        System.arraycopy(fileBytes, 0, clientRequest, menuChoice.length, fileBytes.length);
+
+        InputStream in = socket.getInputStream();
+        OutputStream out = socket.getOutputStream();
+
+        out.write(clientRequest);
+        socket.shutdownOutput();
+
+        int bytesRead;
+
+        byte[] buffer = new byte[1024];
+        while((bytesRead = in.read(buffer)) != -1){
+            String reply = new String(buffer, 0, bytesRead);
+            if(reply.equals("S")){
+                System.out.println("Operation successful!");
+            }
+            else if(reply.equals("F")){
+                System.out.println("Operation failed.");
+            }
+            else{
+                System.out.println("Unknown error occurred.");
+            }
+        }
     }
-    */
+
+    public static void deleteFile(Socket socket, byte[] menuChoice) throws IOException{
+        Scanner deleteScanner = new Scanner(System.in);
+        String fileToDelete = deleteScanner.nextLine().trim();
+
+        byte[] fileName = fileToDelete.getBytes();
+        deleteScanner.close();
+
+        byte[] clientRequest = new byte[menuChoice.length + fileName.length];
+        System.arraycopy(menuChoice, 0, clientRequest, 0, menuChoice.length);
+        System.arraycopy(fileName, 0, clientRequest, menuChoice.length, fileName.length);
+
+        InputStream in = socket.getInputStream();
+        OutputStream out = socket.getOutputStream();
+
+        out.write(clientRequest);
+        socket.shutdownOutput();
+
+        int bytesRead;
+        byte[] buffer = new byte[1024];
+        while((bytesRead = in.read(buffer)) != -1){
+            String reply = new String(buffer, 0, bytesRead);
+            if(reply.equals("S")){
+                System.out.println("Operation successful!");
+            }
+            else if(reply.equals("F")){
+                System.out.println("Operation failed.");
+            }
+            else{
+                System.out.println("Unknown error occurred.");
+            }
+        }
+    }
 
     private static void printMenuBlock(){
         System.out.println("---------------------");
