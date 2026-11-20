@@ -22,7 +22,6 @@ public class Server {
             executor.submit(new KeyboardMonitor(listenSocket));
 
             while(true){
-                System.out.println("Did outter loop");
                 Socket clientSocket = listenSocket.accept();
                 executor.submit(new ClientHandler(clientSocket));
             }
@@ -78,29 +77,32 @@ public class Server {
 
                 //read command from user
                 char command = (char) in.read();
-                System.out.println("read command: "+command);
                 switch(command){
                     case 'L':
                         //get a list of all the files
                         sendFileList(folder, out);
+                        break;
                     case 'R':
                         //rename a file
                         renameFile(folder, in, out);
+                        break;
                     case 'W':
                         //send a file to be downloaded
                         sendDownloadFile(folder, in, out);
+                        break;
                     case 'U':
                         //receive a file to be uploaded
                         getUploadFile(folder, in, out);
+                        break;
                     case 'D':
                         //delete a file
-                        System.out.println("correct command: "+command);
                         deleteFile(folder, in, out);
-                        System.out.println("finished delete");
-                    // default:
-                    //     //return failed and explanation
-                    //     System.out.println("Invalid command: "+command);
-                    //     out.write("F".getBytes());
+                        break;
+                    default:
+                        //return failed and explanation
+                        System.out.println("Invalid command: "+command);
+                        out.write("F".getBytes());
+                        break;
                 }
             } catch(IOException e){
                 e.printStackTrace();
@@ -123,7 +125,7 @@ public class Server {
             while((bytesRead = in.read(buffer))!=-1){
                 input += new String(buffer, 0, bytesRead);
             }
-            String[] fileNames = input.split("?");
+            String[] fileNames = input.split("\\?",2);
             File toRename = new File(folder, fileNames[0]);
             File renameTo = new File(folder, fileNames[1]);
             if(toRename.exists() && !renameTo.exists()){
@@ -139,7 +141,6 @@ public class Server {
         }
 
         private void sendDownloadFile(File folder, InputStream in, OutputStream out) throws IOException{
-            System.out.println("did download method");
             byte[] buffer = new byte[1024];
             int bytesRead;
             String fileName = "";
@@ -170,9 +171,11 @@ public class Server {
             String fileName = "";
             ByteBuffer byteBuffer = ByteBuffer.allocate(4);
             int fileNameLength = byteBuffer.put(in.readNBytes(4)).rewind().getInt();
-            while((bytesRead = in.read(buffer)) <= fileNameLength){
-                fileName += new String(buffer, 0, bytesRead);
-            }
+            bytesRead = in.read(buffer, 0, fileNameLength);
+            fileName = new String(buffer, 0, bytesRead);
+            // while((bytesRead = in.read(buffer,)) <= fileNameLength){
+            //     fileName += new String(buffer, 0, bytesRead);
+            // }
             File fileToWrite = new File(folder, fileName);
             if(!fileToWrite.exists() && !fileToWrite.isDirectory()){
                 out.write("S".getBytes());
