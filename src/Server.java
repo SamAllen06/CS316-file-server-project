@@ -8,6 +8,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
+import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -18,7 +19,10 @@ public class Server {
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
 
         try(ServerSocket listenSocket = new ServerSocket(serverPort)){
+            executor.submit(new KeyboardMonitor(listenSocket));
+
             while(true){
+                System.out.println("Did outter loop");
                 Socket clientSocket = listenSocket.accept();
                 executor.submit(new ClientHandler(clientSocket));
             }
@@ -30,6 +34,31 @@ public class Server {
         }
     }
 
+    private static class KeyboardMonitor implements Runnable{
+        private final ServerSocket listenSocket;
+
+        public KeyboardMonitor(ServerSocket listenSocket){
+            this.listenSocket = listenSocket;
+        }
+
+        @Override
+        public void run(){
+            Scanner keyboard = new Scanner(System.in);
+            try{
+                while(true){
+                    if (keyboard.nextLine().trim().equalsIgnoreCase("q")){
+                        this.listenSocket.close();
+                        keyboard.close();
+                        return;
+                    }
+                }
+            } catch(IOException e){
+                e.printStackTrace();
+            }
+        }
+    }
+        
+    
     private static class ClientHandler implements Runnable{
         private final Socket clientSocket;
 
@@ -46,10 +75,10 @@ public class Server {
                 OutputStream out = clientSocket.getOutputStream();
                 //define folder info
                 File folder = new File("./src/serverFiles");
-                
+
                 //read command from user
                 char command = (char) in.read();
-
+                System.out.println("read command: "+command);
                 switch(command){
                     case 'L':
                         //get a list of all the files
@@ -65,11 +94,13 @@ public class Server {
                         getUploadFile(folder, in, out);
                     case 'D':
                         //delete a file
+                        System.out.println("correct command: "+command);
                         deleteFile(folder, in, out);
-                    default:
-                        System.out.println("Invalid command: "+command);
-                        out.write("F".getBytes());
-                        //return failed and explanation
+                        System.out.println("finished delete");
+                    // default:
+                    //     //return failed and explanation
+                    //     System.out.println("Invalid command: "+command);
+                    //     out.write("F".getBytes());
                 }
             } catch(IOException e){
                 e.printStackTrace();
@@ -82,17 +113,17 @@ public class Server {
                 stringFiles += file.getName()+"\n";
             }
             out.write(stringFiles.getBytes());
-            clientSocket.close();
+            // clientSocket.close();
         }
 
         private void renameFile(File folder, InputStream in, OutputStream out) throws IOException{
             byte[] buffer = new byte[1024];
             int bytesRead;
-            String rInput = "";
+            String input = "";
             while((bytesRead = in.read(buffer))!=-1){
-                rInput += new String(buffer, 0, bytesRead);
+                input += new String(buffer, 0, bytesRead);
             }
-            String[] fileNames = rInput.split("?");
+            String[] fileNames = input.split("?");
             File toRename = new File(folder, fileNames[0]);
             File renameTo = new File(folder, fileNames[1]);
             if(toRename.exists() && !renameTo.exists()){
@@ -108,16 +139,20 @@ public class Server {
         }
 
         private void sendDownloadFile(File folder, InputStream in, OutputStream out) throws IOException{
+            System.out.println("did download method");
             byte[] buffer = new byte[1024];
             int bytesRead;
-            String wFileName = "";
+            String fileName = "";
             while((bytesRead = in.read(buffer)) != -1){
-                wFileName += new String(buffer, 0, bytesRead);
+                fileName += new String(buffer, 0, bytesRead);
             }
-            File fileToSend = new File(folder, wFileName);
+            File fileToSend = new File(folder, fileName);
 
             if(fileToSend.exists() && !fileToSend.isDirectory()){
                 out.write("S".getBytes());
+                byte[] fileNameLength = ByteBuffer.allocate(4).putInt(fileName.length()).array();
+                out.write(fileNameLength);
+                out.write(fileName.getBytes());
                 try(FileInputStream fis = new FileInputStream(fileToSend)){
                     while((bytesRead = fis.read(buffer)) != -1){
                         out.write(buffer, 0, bytesRead);
@@ -132,13 +167,13 @@ public class Server {
         private void getUploadFile(File folder, InputStream in, OutputStream out) throws IOException{
             byte[] buffer = new byte[1024];
             int bytesRead;
-            String uFileName = "";
+            String fileName = "";
             ByteBuffer byteBuffer = ByteBuffer.allocate(4);
             int fileNameLength = byteBuffer.put(in.readNBytes(4)).rewind().getInt();
             while((bytesRead = in.read(buffer)) <= fileNameLength){
-                uFileName += new String(buffer, 0, bytesRead);
+                fileName += new String(buffer, 0, bytesRead);
             }
-            File fileToWrite = new File(folder, uFileName);
+            File fileToWrite = new File(folder, fileName);
             if(!fileToWrite.exists() && !fileToWrite.isDirectory()){
                 out.write("S".getBytes());
                 try(FileOutputStream fos = new FileOutputStream(fileToWrite)){
@@ -155,11 +190,11 @@ public class Server {
         private void deleteFile(File folder, InputStream in, OutputStream out) throws IOException{
             byte[] buffer = new byte[1024];
             int bytesRead;
-            String dFileName = "";
+            String fileName = "";
             while((bytesRead = in.read(buffer))!=-1){
-                dFileName += new String(buffer, 0, bytesRead);
+                fileName += new String(buffer, 0, bytesRead);
             }
-            File toDelete = new File(folder, dFileName);
+            File toDelete = new File(folder, fileName);
             if(toDelete.exists()){
                 Boolean flag = toDelete.delete();
                 if(flag==true){
