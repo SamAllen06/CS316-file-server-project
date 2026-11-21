@@ -156,7 +156,7 @@ public class Client {
 
     public static String uploadFile(Scanner scanner){
         System.out.println("Enter filename to upload: ");
-        String fileToUpload = scanner.nextLine();
+        String fileToUpload = scanner.nextLine().trim();
         return fileToUpload;
     } //End upload
 
@@ -200,14 +200,10 @@ public class Client {
                 InputStream in = socket.getInputStream();
                 OutputStream out = socket.getOutputStream();
                 byte[] fileBytes = fileName.getBytes();
-
-                byte[] length = ByteBuffer.allocate(4)
-                    .putInt(fileBytes.length)
-                    .array();
-
+                
              // Construct request
                 out.write('W');
-                out.write(length);
+                //out.write(length);
                 out.write(fileBytes);
                 out.flush();
                 socket.shutdownOutput();
