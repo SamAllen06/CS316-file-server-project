@@ -55,7 +55,6 @@ public class Client {
                 case "Q":
                     scanner.close();
                     keepGoing = false;
-                    es.awaitTermination(5,TimeUnit.SECONDS);
                     es.shutdown();
                     System.out.println("Exiting server. Goodbye!");
                     break;
@@ -210,7 +209,7 @@ public class Client {
                 out.flush();
                 socket.shutdownOutput();
 
-                int status = in.read();
+                char status = (char) in.read();
 
                 if (status == 'F') {
                     System.out.println("File not found on server: " + fileName);
@@ -231,7 +230,7 @@ public class Client {
 
                     while ((bytesRead = in.read(buffer)) != -1) {
                         fileOut.write(buffer, 0, bytesRead);
-                        
+
                     }
                     System.out.println("Download of " + fileName + " has completed.");
 
@@ -295,7 +294,7 @@ public class Client {
                 socket.shutdownOutput();
 
                 // Receive the server's response
-                int response = in.read();
+                char response = (char) in.read();
 
                 if (response == 'S') {
                     System.out.println("File uploaded successfully: " + fileName);
