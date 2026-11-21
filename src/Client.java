@@ -1,6 +1,7 @@
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -11,7 +12,7 @@ import java.net.SocketException;
 import java.nio.ByteBuffer;
 
 public class Client {
-    public static void main(String[] args) throws IOException{
+    public static void main(String[] args) throws Exception{
         if(args.length != 2){
             System.out.println("Need two arguments: serverIP & serverPort");
             return;
@@ -52,10 +53,11 @@ public class Client {
                     es.submit(new UploadTask(serverIP, serverPort, uploadFile));
                     break;
                 case "Q":
-                    System.out.println("Exiting server. Goodbye!");
                     scanner.close();
                     keepGoing = false;
+                    es.awaitTermination(5,TimeUnit.SECONDS);
                     es.shutdown();
+                    System.out.println("Exiting server. Goodbye!");
                     break;
             } //End switch
 
@@ -200,7 +202,7 @@ public class Client {
                 InputStream in = socket.getInputStream();
                 OutputStream out = socket.getOutputStream();
                 byte[] fileBytes = fileName.getBytes();
-                
+
              // Construct request
                 out.write('W');
                 //out.write(length);
@@ -229,8 +231,10 @@ public class Client {
 
                     while ((bytesRead = in.read(buffer)) != -1) {
                         fileOut.write(buffer, 0, bytesRead);
+                        
                     }
                     System.out.println("Download of " + fileName + " has completed.");
+
                 } catch (IOException e) {
                     System.out.println("Download failed: " + e.getMessage());
                 }  
