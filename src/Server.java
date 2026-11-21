@@ -115,7 +115,8 @@ public class Server {
                 stringFiles += file.getName()+"\n";
             }
             out.write(stringFiles.getBytes());
-            // clientSocket.close();
+            out.flush();
+            clientSocket.close();
         }
 
         private void renameFile(File folder, InputStream in, OutputStream out) throws IOException{
@@ -151,16 +152,14 @@ public class Server {
 
             if(fileToSend.exists() && !fileToSend.isDirectory()){
                 out.write("S".getBytes());
-                byte[] fileNameLength = ByteBuffer.allocate(4).putInt(fileName.length()).array();
-                out.write(fileNameLength);
-                out.write(fileName.getBytes());
                 try(FileInputStream fis = new FileInputStream(fileToSend)){
                     while((bytesRead = fis.read(buffer)) != -1){
                         out.write(buffer, 0, bytesRead);
                     }
+                    out.flush();
+                    out.close();
                 }
             } else{
-                System.out.println("Error: File not found on server.");
                 out.write("F".getBytes());
             }
         }
